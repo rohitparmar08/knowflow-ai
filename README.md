@@ -261,6 +261,7 @@ Top 5 matching chunks for query 'What is the bullwhip effect?' (user: alice):
 
 ## Known Limitations
 
+- **Short Keyword Retrieval**: Short keyword-style questions (for example "4 V's of big data") can miss the right chunk, because retrieval is vector-only. Adding keyword (full-text) search alongside the vectors would address this.
 - **Synchronous Ingestion**: Documents are extracted, chunked, and embedded synchronously during the upload HTTP request. Very large files or batch uploads may experience longer request response times.
 - **Model Download Size & Resource Usage**: The first time the application runs, it automatically downloads `paraphrase-multilingual-MiniLM-L12-v2` (~480 MB) into the local HuggingFace cache. PyTorch and the transformer model require substantial RAM and disk, and have not been tested on minimal free hosting tiers (e.g. 512MB RAM instances).
 - **Local Storage**: Uploaded files are stored on the local file system under `backend/media/` rather than cloud object storage (e.g., S3).

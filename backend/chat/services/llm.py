@@ -9,7 +9,8 @@ logger = logging.getLogger(__name__)
 SYSTEM_INSTRUCTION = (
     "Answer using ONLY the provided context. If the context does not contain the answer, "
     "say you could not find it in the user's documents. Cite sources inline as [1], [2] "
-    "matching the numbered context blocks. Do not invent facts."
+    "matching the numbered context blocks. Do not invent facts. "
+    "Use only facts and examples that appear in the context. Do not add examples, names or details from your own knowledge."
 )
 
 
