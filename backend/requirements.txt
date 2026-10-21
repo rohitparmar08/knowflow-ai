@@ -1,0 +1,14 @@
+Django>=5.0,<6.0
+djangorestframework
+djangorestframework-simplejwt
+django-cors-headers
+psycopg2-binary
+python-dotenv
+dj-database-url
+gunicorn
+whitenoise
+pgvector
+pypdf
+python-docx
+sentence-transformers
+google-genai
