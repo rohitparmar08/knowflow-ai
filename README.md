@@ -20,7 +20,7 @@ KnowFlow AI is a full-stack, retrieval-augmented generation (RAG) knowledge mana
 
 - **Frontend**: React 19, Vite, Tailwind CSS, Lucide icons, ReactMarkdown.
 - **Backend**: Django 5, Django REST Framework, SimpleJWT, WhiteNoise, Gunicorn.
-- **Database**: PostgreSQL 14+ with the `pgvector` extension.
+- **Database**: PostgreSQL with the `pgvector` extension.
 - **Embeddings**: `sentence-transformers` (`paraphrase-multilingual-MiniLM-L12-v2`, 384 dimensions).
 - **LLM**: Google Gemini API via official `google-genai` SDK (`gemini-3.5-flash-lite`, with optional `gemini-3.8-flash` fallback).
 
@@ -43,7 +43,7 @@ KnowFlow AI is a full-stack, retrieval-augmented generation (RAG) knowledge mana
 
 ```
 [Document Upload] ──> [Text Extraction] ──> [Text Chunking] ──> [Vector Embedding] ──> [PostgreSQL pgvector]
-(PDF / DOCX / TXT)    (pypdf / python-docx)  (1200 chars / 200 overlap)  (MiniLM-L12-v2 384d)   (Cosine distance index)
+(PDF / DOCX / TXT)    (pypdf / python-docx)  (1200 chars / 200 overlap)  (MiniLM-L12-v2 384d)
                                                                                                     │
 [User Query] ───────> [Embed Query] ──> [Vector Search] ──> [Distance Cutoff (0.8)] ───────────────┘
                                                                 │
@@ -84,9 +84,10 @@ KnowFlow AI is a full-stack, retrieval-augmented generation (RAG) knowledge mana
 ## Local Setup Guide
 
 ### 1. Prerequisites
-- **Python**: 3.11+
-- **Node.js**: 18+ and `npm`
-- **PostgreSQL**: 14+ with `pgvector` extension installed.
+Developed and tested with:
+- **Python**: 3.14.6
+- **Node.js**: 24.19.0 (with `npm`)
+- **PostgreSQL**: 17 with `pgvector` 0.8.x on Windows
 
 #### Installing pgvector
 - **macOS (Homebrew)**:
@@ -248,19 +249,22 @@ KnowFlow AI is a full-stack, retrieval-augmented generation (RAG) knowledge mana
 ### `search_chunks`
 Perform a manual semantic search directly against stored vector chunks:
 ```bash
-python manage.py search_chunks "What is the bullwhip effect?" --user <username> --top 5
+python manage.py search_chunks "What is the bullwhip effect?" --user alice --top 2
 ```
 Example output:
 ```text
-Top 5 matching chunks for query 'What is the bullwhip effect?' (user: alice):
-[1] Title: Supply_Chain_Notes | Chunk: 13 | Cosine Distance: 0.7422
-    Content: Bullwhip effect: customer demand mein chhota change supply chain mein distort ho jaata hai...
+Top 2 matching chunks for query 'What is the bullwhip effect?' (user: alice):
+[1] Title: MIS_Concepts_Explained | Chunk: 13 | Cosine Distance: 0.7586
+    Content: showrooms aur customer tak car pahunchana. Exam trap: Upstream = suppliers ki taraf (nadi ka shuruaati hissa). Downstream = customer ki taraf. Interna...
+[2] Title: MIS_Concepts_Explained | Chunk: 30 | Cosine Distance: 0.7961
+    Content: sab hamesha rules follow karte the. Zenith Corp mein random monitoring se employees ne yahi kiya. Hawthorne effect alag hai: jab logon ko pata hota ha...
 ```
 
 ---
 
 ## Known Limitations
 
+- **Vector Indexing**: No approximate vector index (HNSW/IVFFlat) is created; searches are exact scans, which is fine for small collections and should be revisited for large ones.
 - **Short Keyword Retrieval**: Short keyword-style questions (for example "4 V's of big data") can miss the right chunk, because retrieval is vector-only. Adding keyword (full-text) search alongside the vectors would address this.
 - **Synchronous Ingestion**: Documents are extracted, chunked, and embedded synchronously during the upload HTTP request. Very large files or batch uploads may experience longer request response times.
 - **Model Download Size & Resource Usage**: The first time the application runs, it automatically downloads `paraphrase-multilingual-MiniLM-L12-v2` (~480 MB) into the local HuggingFace cache. PyTorch and the transformer model require substantial RAM and disk, and have not been tested on minimal free hosting tiers (e.g. 512MB RAM instances).
