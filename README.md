@@ -191,7 +191,7 @@ KnowFlow AI is a full-stack, retrieval-augmented generation (RAG) knowledge mana
 | `LLM_MODEL` | Primary Gemini model name | `gemini-3.5-flash-lite` |
 | `LLM_FALLBACK_MODEL` | Optional fallback Gemini model on 503/429 | `gemini-3.8-flash` |
 | `EMBEDDING_MODEL` | SentenceTransformer embedding model | `paraphrase-multilingual-MiniLM-L12-v2` |
-| `RAG_TOP_K` | Number of chunks retrieved per question | `5` |
+| `RAG_TOP_K` | Number of chunks retrieved per question | `8` |
 | `RAG_MAX_DISTANCE` | Maximum cosine distance threshold | `0.8` |
 
 #### How to Obtain a Gemini API Key
@@ -267,5 +267,5 @@ Top 5 matching chunks for query 'What is the bullwhip effect?' (user: alice):
 - **Local Storage**: Uploaded files are stored on the local file system under `backend/media/` rather than cloud object storage (e.g., S3).
 - **No OCR**: Only digital text from PDFs, DOCX, and text files is parsed. Scanned images or scanned PDFs without embedded text layers are not OCR-processed.
 - **No Streaming Responses**: Answers from the Gemini LLM are returned as single completed JSON payloads; streaming server-sent events (SSE) are not currently implemented.
-- **Distance Cutoff Tuning**: The default cutoff threshold `RAG_MAX_DISTANCE = 0.8` was tuned against a test dataset of mixed English and Hinglish domain documents. Depending on document vocabulary and domain specificity, this value may require adjustment.
+- **Distance Cutoff & Top-K Tuning**: The default cutoff threshold `RAG_MAX_DISTANCE = 0.8` was tuned against a test dataset of mixed English and Hinglish domain documents. Depending on document vocabulary and domain specificity, this value may require adjustment. RAG_TOP_K is 8 because with 5 some relevant chunks (for example the cloud service models section of the test PDF) fell just outside the results. The top-k of 8 and the distance cutoff of 0.8 were tuned on a small set of test documents.
 - **Upstream Gemini Availability**: Answer generation depends on Google Gemini API availability; temporary spikes in Google's cloud service can return 503 or 429 rate limit errors (mitigated by automated exponential backoff and the optional fallback model).

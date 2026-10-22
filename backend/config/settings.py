@@ -202,7 +202,7 @@ LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "gemini-3.8-flash")
 LLM_FALLBACK_MODEL = os.getenv("LLM_FALLBACK_MODEL", "")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "paraphrase-multilingual-MiniLM-L12-v2")
-RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))
+RAG_TOP_K = int(os.getenv("RAG_TOP_K", "8"))
 RAG_MAX_DISTANCE = float(os.getenv("RAG_MAX_DISTANCE", "0.8"))
 
 # Production Security Defaults
