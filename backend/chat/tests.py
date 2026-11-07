@@ -90,6 +90,24 @@ class RagServiceTests(EmbeddingPatchMixin, TestCase):
         history = gen.call_args.kwargs["history"]
         self.assertEqual([m["role"] for m in history], ["user", "assistant"])
 
+    @mock.patch("chat.services.rag.generate_answer", return_value="ok [1]")
+    def test_unrelated_new_question_does_not_inherit_the_previous_topic(self, gen):
+        conv = Conversation.objects.create(user=self.alice, title="t")
+        Message.objects.create(conversation=conv, role="user", content="django rest framework web apis")
+        Message.objects.create(conversation=conv, role="assistant", content="Sure.")
+        answer, sources = answer_question(self.alice, "banana smoothie recipe", conversation=conv)
+        self.assertEqual(answer, FALLBACK_ANSWER)
+        self.assertEqual(sources, [])
+        gen.assert_not_called()
+
+    def test_follow_up_detection(self):
+        from chat.services.rag import looks_like_follow_up
+
+        for q in ["what else", "Explain that more", "why?", "can you give an example"]:
+            self.assertTrue(looks_like_follow_up(q), q)
+        for q in ["banana smoothie recipe", "is mango expensive fruit?", "", "what is mutation testing and how is it used in large systems today"]:
+            self.assertFalse(looks_like_follow_up(q), q)
+
     @override_settings(RAG_TOP_K=1)
     @mock.patch("chat.services.rag.generate_answer", return_value="a [1] [2]")
     def test_top_k_limits_chunks(self, gen):

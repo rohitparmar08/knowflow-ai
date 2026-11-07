@@ -7,6 +7,19 @@ logger = logging.getLogger(__name__)
 
 FALLBACK_ANSWER = "I couldn't find anything relevant in your documents."
 
+FOLLOW_UP_MAX_WORDS = 8
+FOLLOW_UP_CUES = {
+    "it", "its", "this", "that", "these", "those", "they", "them", "their", "he", "she", "his", "her",
+    "more", "else", "also", "again", "another", "above", "previous", "earlier", "same", "explain",
+    "elaborate", "example", "examples", "why", "how", "and", "continue",
+}
+
+
+def looks_like_follow_up(question: str) -> bool:
+    """True for short questions that refer back to the conversation ("what else?", "explain that")."""
+    words = re.findall(r"[a-z']+", question.lower())
+    return 0 < len(words) <= FOLLOW_UP_MAX_WORDS and any(w in FOLLOW_UP_CUES for w in words)
+
 
 def answer_question(
     user,
@@ -17,29 +30,35 @@ def answer_question(
 ) -> tuple[str, list[dict]]:
     """
     Coordinates RAG:
-    - If conversation has an earlier user message, appends it to query for retrieval.
-    - Retrieves relevant chunks; skips LLM if distance threshold is not met.
+    - Retrieves relevant chunks for the question; for short follow-up questions that find nothing,
+      retries with the previous user message added. Skips the LLM if no chunk passes the cutoff.
     - Generates answer via LLM with context chunks and recent history.
     - Filters returned sources to only those explicitly cited as [n] in the answer.
     """
-    # 1. Determine retrieval query
-    retrieval_query = question
-    if conversation:
+    # 1. Retrieve chunks for the question on its own, so an unrelated new question is not
+    #    pulled towards the topic of an earlier one.
+    chunks = retrieve_chunks(
+        user=user,
+        query=question,
+        document_ids=document_ids,
+        folder_id=folder_id,
+    )
+
+    # 2. Short follow-ups ("what else?", "explain that more") only make sense with the previous
+    #    question, so retry with it added, but only when the question looks like a follow-up.
+    if not chunks and conversation and looks_like_follow_up(question):
         last_user_msg = (
             conversation.messages.filter(role="user")
             .order_by("-created_at", "-id")
             .first()
         )
         if last_user_msg and last_user_msg.content.strip():
-            retrieval_query = f"{last_user_msg.content.strip()}\n{question.strip()}"
-
-    # 2. Retrieve chunks
-    chunks = retrieve_chunks(
-        user=user,
-        query=retrieval_query,
-        document_ids=document_ids,
-        folder_id=folder_id,
-    )
+            chunks = retrieve_chunks(
+                user=user,
+                query=f"{last_user_msg.content.strip()}\n{question.strip()}",
+                document_ids=document_ids,
+                folder_id=folder_id,
+            )
 
     if not chunks:
         # Crucial requirement: No chunks survive threshold -> Do NOT call LLM.

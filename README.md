@@ -4,6 +4,13 @@
 
 KnowFlow AI is a full-stack, retrieval-augmented generation (RAG) knowledge management application. It allows users to upload documents (PDF, DOCX, TXT), organize them into folders, extract and chunk text, compute semantic vector embeddings, and chat with their knowledge base using cited answers powered by Google Gemini.
 
+## Live demo
+
+- App: https://knowflow-ai-theta.vercel.app
+- API health check: https://knowflow-api-xvtf.onrender.com/api/health/
+
+Hosted on free tiers: React on Vercel, Django API on Render and PostgreSQL with pgvector on Neon. The free API server sleeps after about 15 minutes without traffic, so the first request can take up to a minute. Register a new account to try it; uploaded files are not persisted across server restarts (see Known Limitations).
+
 ---
 
 ## Features
@@ -12,6 +19,7 @@ KnowFlow AI is a full-stack, retrieval-augmented generation (RAG) knowledge mana
 - **Hierarchical Organization**: Categorize documents into custom folders with quick filtering, searching, and chunk inspection.
 - **Semantic Retrieval**: Vector search over document chunks using Gemini embeddings (768 dimensions), with an optional local `sentence-transformers` provider. Ask questions in English: Roman-script Hindi questions did not retrieve reliably in testing (see Known Limitations).
 - **Grounded Citations**: Responses from Google Gemini cite exact chunks inline as `[1]`, `[2]`. Only cited sources are returned to the client.
+- **Follow-up Questions**: Each question is searched on its own; short follow-ups such as "what else?" are retried together with the previous question, so unrelated questions do not inherit an old topic.
 - **Configurable Scope**: Direct questions across all documents, within a specific folder, or restricted to selected documents.
 - **Model Fallback**: Automatic retry and failover to a fallback LLM model upon upstream unavailability or rate limits.
 - **User Isolation**: Secure authentication via SimpleJWT ensuring users only ever access their own documents, chunks, and conversations.
