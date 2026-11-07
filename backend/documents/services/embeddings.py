@@ -92,6 +92,12 @@ def _gemini_embed(texts: list[str], task_type: str) -> list[list[float]]:
     api_key = (getattr(settings, "EMBEDDING_API_KEY", "") or getattr(settings, "LLM_API_KEY", "")).strip()
     if not api_key:
         raise EmbeddingError("LLM_API_KEY is not configured, so embeddings cannot be generated.")
+    model = settings.EMBEDDING_MODEL.strip()
+    if "embedding" not in model.lower():
+        raise EmbeddingError(
+            f"EMBEDDING_MODEL={model!r} is not a Gemini embedding model. Remove EMBEDDING_MODEL from your "
+            "environment (the default is gemini-embedding-001) or set EMBEDDING_PROVIDER=local."
+        )
     client = genai.Client(api_key=api_key)
 
     vectors: list[list[float]] = []

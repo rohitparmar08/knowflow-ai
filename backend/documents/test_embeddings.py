@@ -107,6 +107,11 @@ class GeminiProviderTests(SimpleTestCase):
             with self.assertRaisesRegex(EmbeddingError, "Expected 2"):
                 embed_texts(["a", "b"])
 
+    @override_settings(EMBEDDING_MODEL="paraphrase-multilingual-MiniLM-L12-v2")
+    def test_non_gemini_model_name_gives_a_clear_error(self):
+        with self.assertRaisesRegex(EmbeddingError, "not a Gemini embedding model"):
+            embed_texts(["x"])
+
     @override_settings(LLM_API_KEY="", EMBEDDING_API_KEY="")
     def test_missing_api_key_is_reported(self):
         with self.assertRaisesRegex(EmbeddingError, "not configured"):
