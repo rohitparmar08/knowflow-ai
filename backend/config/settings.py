@@ -229,7 +229,7 @@ SIMPLE_JWT = {
 
 # LLM & RAG Configuration
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
-LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-flash")
+LLM_MODEL = os.getenv("LLM_MODEL", "gemini-3.5-flash-lite")
 LLM_FALLBACK_MODEL = os.getenv("LLM_FALLBACK_MODEL", "")
 # Embeddings: "gemini" (API call, light on memory, default) or "local" (sentence-transformers in-process)
 EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", "gemini").strip().lower()

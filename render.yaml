@@ -20,7 +20,9 @@ services:
       - key: TRUST_PROXY_SSL_HEADER
         value: "True"
       - key: LLM_MODEL
-        value: gemini-2.5-flash
+        value: gemini-3.5-flash-lite
+      - key: LLM_FALLBACK_MODEL
+        value: gemini-3.8-flash
       - key: EMBEDDING_PROVIDER
         value: gemini
       - key: DATABASE_URL

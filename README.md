@@ -24,7 +24,7 @@ KnowFlow AI is a full-stack, retrieval-augmented generation (RAG) knowledge mana
 - **Backend**: Django 5, Django REST Framework, SimpleJWT, WhiteNoise, Gunicorn.
 - **Database**: PostgreSQL with the `pgvector` extension.
 - **Embeddings**: Gemini `gemini-embedding-001` (768 dimensions) by default; optional local `sentence-transformers` provider (`EMBEDDING_PROVIDER=local`).
-- **LLM**: Google Gemini API via official `google-genai` SDK (default `gemini-2.5-flash`, with an optional fallback model).
+- **LLM**: Google Gemini API via official `google-genai` SDK (default `gemini-3.5-flash-lite`, with an optional fallback model).
 
 ---
 
@@ -191,8 +191,8 @@ Developed and tested with:
 | `DB_PORT` | Database port | `5432` |
 | `DATABASE_URL` | Optional full connection URL (takes precedence if set) | `postgres://user:pass@localhost:5432/knowflow_ai` |
 | `LLM_API_KEY` | Google Gemini API key from Google AI Studio | *(Required for chat)* |
-| `LLM_MODEL` | Primary Gemini model name | `gemini-2.5-flash` |
-| `LLM_FALLBACK_MODEL` | Optional fallback Gemini model on 503/429 | *(empty)* |
+| `LLM_MODEL` | Primary Gemini model name | `gemini-3.5-flash-lite` |
+| `LLM_FALLBACK_MODEL` | Optional fallback Gemini model on 503/429 | *(empty)* (`gemini-3.8-flash` in `render.yaml`) |
 | `EMBEDDING_PROVIDER` | `gemini` (API) or `local` (sentence-transformers, install `requirements-local.txt`) | `gemini` |
 | `EMBEDDING_MODEL` | Embedding model name (must produce or support 768 dimensions) | `gemini-embedding-001` / `paraphrase-multilingual-mpnet-base-v2` |
 | `EMBEDDING_API_KEY` | Optional separate key for embeddings | *(falls back to `LLM_API_KEY`)* |
