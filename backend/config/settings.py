@@ -45,6 +45,12 @@ if not SECRET_KEY:
 
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
 
+# Render sets RENDER_EXTERNAL_HOSTNAME to the service's public hostname; allow it automatically
+# so health checks and requests are not rejected if ALLOWED_HOSTS was typed incorrectly.
+_render_host = os.getenv("RENDER_EXTERNAL_HOSTNAME", "").strip()
+if _render_host and _render_host not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(_render_host)
+
 CORS_ALLOWED_ORIGINS = [
     h.strip()
     for h in os.getenv(
