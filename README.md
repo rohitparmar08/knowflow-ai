@@ -1,5 +1,7 @@
 # KnowFlow AI
 
+[![CI](https://github.com/rohitparmar08/knowflow-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/rohitparmar08/knowflow-ai/actions/workflows/ci.yml)
+
 KnowFlow AI is a full-stack, retrieval-augmented generation (RAG) knowledge management application. It allows users to upload documents (PDF, DOCX, TXT), organize them into folders, extract and chunk text, compute semantic vector embeddings, and chat with their knowledge base using cited answers powered by Google Gemini.
 
 ---
@@ -8,7 +10,7 @@ KnowFlow AI is a full-stack, retrieval-augmented generation (RAG) knowledge mana
 
 - **Document Management**: Upload PDF, DOCX, and TXT files with synchronous text extraction, character chunking, and vector embedding.
 - **Hierarchical Organization**: Categorize documents into custom folders with quick filtering, searching, and chunk inspection.
-- **Multilingual Semantic Retrieval**: Semantic vector search using `sentence-transformers` (`paraphrase-multilingual-MiniLM-L12-v2`) supporting English and Hinglish (Roman Hindi) text.
+- **Multilingual Semantic Retrieval**: Semantic vector search using `sentence-transformers` (`paraphrase-multilingual-MiniLM-L12-v2`) indexing English and Hinglish (Roman Hindi) document text. Ask questions in English: Roman-script Hindi questions did not retrieve reliably in testing (see Known Limitations).
 - **Grounded Citations**: Responses from Google Gemini cite exact chunks inline as `[1]`, `[2]`. Only cited sources are returned to the client.
 - **Configurable Scope**: Direct questions across all documents, within a specific folder, or restricted to selected documents.
 - **Model Fallback**: Automatic retry and failover to a fallback LLM model upon upstream unavailability or rate limits.
@@ -22,7 +24,7 @@ KnowFlow AI is a full-stack, retrieval-augmented generation (RAG) knowledge mana
 - **Backend**: Django 5, Django REST Framework, SimpleJWT, WhiteNoise, Gunicorn.
 - **Database**: PostgreSQL with the `pgvector` extension.
 - **Embeddings**: `sentence-transformers` (`paraphrase-multilingual-MiniLM-L12-v2`, 384 dimensions).
-- **LLM**: Google Gemini API via official `google-genai` SDK (`gemini-3.5-flash-lite`, with optional `gemini-3.8-flash` fallback).
+- **LLM**: Google Gemini API via official `google-genai` SDK (default `gemini-2.5-flash`, with an optional fallback model).
 
 ---
 
@@ -189,11 +191,17 @@ Developed and tested with:
 | `DB_PORT` | Database port | `5432` |
 | `DATABASE_URL` | Optional full connection URL (takes precedence if set) | `postgres://user:pass@localhost:5432/knowflow_ai` |
 | `LLM_API_KEY` | Google Gemini API key from Google AI Studio | *(Required for chat)* |
-| `LLM_MODEL` | Primary Gemini model name | `gemini-3.5-flash-lite` |
-| `LLM_FALLBACK_MODEL` | Optional fallback Gemini model on 503/429 | `gemini-3.8-flash` |
+| `LLM_MODEL` | Primary Gemini model name | `gemini-2.5-flash` |
+| `LLM_FALLBACK_MODEL` | Optional fallback Gemini model on 503/429 | *(empty)* |
 | `EMBEDDING_MODEL` | SentenceTransformer embedding model | `paraphrase-multilingual-MiniLM-L12-v2` |
 | `RAG_TOP_K` | Number of chunks retrieved per question | `8` |
 | `RAG_MAX_DISTANCE` | Maximum cosine distance threshold | `0.8` |
+| `THROTTLE_ASK` | Rate limit for `POST /api/chat/ask/` (per user) | `20/min` |
+| `THROTTLE_AUTH` | Rate limit for register/login (per IP) | `10/min` |
+| `TRUST_PROXY_SSL_HEADER` | Set `True` behind a TLS-terminating proxy (Render, Fly.io, nginx...) | `False` |
+| `MEDIA_ROOT` | Directory for uploaded files (use a persistent disk in production) | `backend/media` |
+
+> `DEBUG` defaults to `False` and `SECRET_KEY` is required whenever `DEBUG` is off, so a misconfigured deployment fails to start instead of running insecurely. `backend/.env.example` sets `DEBUG=True` for local development.
 
 #### How to Obtain a Gemini API Key
 1. Go to [Google AI Studio](https://aistudio.google.com/).
@@ -240,7 +248,7 @@ Developed and tested with:
 - `GET /api/chat/conversations/<id>/` - Conversation history with messages and sources.
 - `PATCH /api/chat/conversations/<id>/` - Rename conversation title.
 - `DELETE /api/chat/conversations/<id>/` - Delete conversation and its messages.
-- `POST /api/chat/ask/` - Ask a question (`question`, optional `conversation_id`, optional `folder_id`, optional `document_ids`).
+- `POST /api/chat/ask/` - Ask a question (`question`, optional `conversation_id`, optional `folder_id`, optional `document_ids`). Rate limited per user.
 
 ---
 
@@ -262,6 +270,31 @@ Top 2 matching chunks for query 'What is the bullwhip effect?' (user: alice):
 
 ---
 
+## Testing & CI
+
+```bash
+cd backend
+# needs PostgreSQL with the pgvector extension and a backend/.env (DEBUG=True for local runs)
+python manage.py test
+```
+
+The suite (53 tests) runs against a real PostgreSQL + pgvector database but replaces the embedding model and the LLM with test doubles, so it needs no model download and no API key. It covers authentication, upload validation, chunking, per-user data isolation, retrieval filters and the distance cut-off (the LLM is skipped when nothing is relevant), citation filtering, LLM retry/fallback and rate limiting.
+
+GitHub Actions (`.github/workflows/ci.yml`) checks for missing migrations, runs the backend tests and builds and lints the frontend on every push and pull request.
+
+---
+
+## Docker
+
+```bash
+cp .env.example .env      # set SECRET_KEY, DB_PASSWORD, LLM_API_KEY
+docker compose up --build
+```
+
+Starts Postgres with pgvector, the Django API (gunicorn) and the built frontend (nginx). Frontend: http://localhost:3000, API health check: http://localhost:8000/api/health/. For hosting options, required environment variables and a release checklist see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+---
+
 ## Known Limitations
 
 - **Vector Indexing**: No approximate vector index (HNSW/IVFFlat) is created; searches are exact scans, which is fine for small collections and should be revisited for large ones.
@@ -271,5 +304,5 @@ Top 2 matching chunks for query 'What is the bullwhip effect?' (user: alice):
 - **Local Storage**: Uploaded files are stored on the local file system under `backend/media/` rather than cloud object storage (e.g., S3).
 - **No OCR**: Only digital text from PDFs, DOCX, and text files is parsed. Scanned images or scanned PDFs without embedded text layers are not OCR-processed.
 - **No Streaming Responses**: Answers from the Gemini LLM are returned as single completed JSON payloads; streaming server-sent events (SSE) are not currently implemented.
-- **Distance Cutoff & Top-K Tuning**: The default cutoff threshold `RAG_MAX_DISTANCE = 0.8` was tuned against a test dataset of mixed English and Hinglish domain documents. Depending on document vocabulary and domain specificity, this value may require adjustment. RAG_TOP_K is 8 because with 5 some relevant chunks (for example the cloud service models section of the test PDF) fell just outside the results. The top-k of 8 and the distance cutoff of 0.8 were tuned on a small set of test documents.
+- **Distance Cutoff & Top-K Tuning**: The default cutoff threshold `RAG_MAX_DISTANCE = 0.8` was tuned against a test dataset of mixed English and Hinglish domain documents. Depending on document vocabulary and domain specificity, this value may require adjustment. Roman-script Hindi (Hinglish) questions asked against English documents often fell outside the cutoff and returned no answer; English questions are recommended. RAG_TOP_K is 8 because with 5 some relevant chunks (for example the cloud service models section of the test PDF) fell just outside the results. The top-k of 8 and the distance cutoff of 0.8 were tuned on a small set of test documents.
 - **Upstream Gemini Availability**: Answer generation depends on Google Gemini API availability; temporary spikes in Google's cloud service can return 503 or 429 rate limit errors (mitigated by automated exponential backoff and the optional fallback model).
