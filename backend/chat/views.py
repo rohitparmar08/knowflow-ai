@@ -2,6 +2,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from documents.models import Document, Folder
 from .models import Conversation, Message
@@ -35,6 +36,9 @@ class ConversationViewSet(viewsets.ModelViewSet):
 
 class AskView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
+    # Every call can cost an LLM request, so it is rate-limited per user (see THROTTLE_ASK).
+    throttle_classes = (ScopedRateThrottle,)
+    throttle_scope = "ask"
 
     def post(self, request):
         serializer = AskRequestSerializer(data=request.data)
