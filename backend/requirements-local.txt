@@ -1,0 +1,4 @@
+# Optional: run the embedding model inside the server (EMBEDDING_PROVIDER=local).
+# Needs roughly 2 GB of RAM; the default Gemini provider does not.
+-r requirements.txt
+sentence-transformers

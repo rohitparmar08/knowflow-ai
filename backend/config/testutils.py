@@ -15,7 +15,7 @@ from unittest import mock
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 
-DIMENSIONS = 384
+from documents.constants import EMBEDDING_DIMENSIONS as DIMENSIONS
 
 
 def fake_embed(text: str) -> list[float]:

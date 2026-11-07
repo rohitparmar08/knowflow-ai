@@ -10,5 +10,4 @@ whitenoise
 pgvector
 pypdf
 python-docx
-sentence-transformers
 google-genai

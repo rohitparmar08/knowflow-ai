@@ -225,7 +225,13 @@ SIMPLE_JWT = {
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-flash")
 LLM_FALLBACK_MODEL = os.getenv("LLM_FALLBACK_MODEL", "")
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "paraphrase-multilingual-MiniLM-L12-v2")
+# Embeddings: "gemini" (API call, light on memory, default) or "local" (sentence-transformers in-process)
+EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", "gemini").strip().lower()
+EMBEDDING_MODEL = os.getenv(
+    "EMBEDDING_MODEL",
+    "gemini-embedding-001" if EMBEDDING_PROVIDER == "gemini" else "paraphrase-multilingual-mpnet-base-v2",
+)
+EMBEDDING_API_KEY = os.getenv("EMBEDDING_API_KEY", "")  # falls back to LLM_API_KEY when empty
 RAG_TOP_K = int(os.getenv("RAG_TOP_K", "8"))
 RAG_MAX_DISTANCE = float(os.getenv("RAG_MAX_DISTANCE", "0.8"))
 

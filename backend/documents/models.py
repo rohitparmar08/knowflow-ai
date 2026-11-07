@@ -2,6 +2,8 @@ from django.contrib.auth.models import User
 from django.db import models
 from pgvector.django import VectorField
 
+from documents.constants import EMBEDDING_DIMENSIONS
+
 
 class Folder(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="folders")
@@ -66,7 +68,7 @@ class DocumentChunk(models.Model):
     )
     chunk_index = models.PositiveIntegerField()
     content = models.TextField()
-    embedding = VectorField(dimensions=384)
+    embedding = VectorField(dimensions=EMBEDDING_DIMENSIONS)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
