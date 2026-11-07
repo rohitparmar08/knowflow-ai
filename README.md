@@ -10,7 +10,7 @@ KnowFlow AI is a full-stack, retrieval-augmented generation (RAG) knowledge mana
 
 - **Document Management**: Upload PDF, DOCX, and TXT files with synchronous text extraction, character chunking, and vector embedding.
 - **Hierarchical Organization**: Categorize documents into custom folders with quick filtering, searching, and chunk inspection.
-- **Multilingual Semantic Retrieval**: Semantic vector search using `sentence-transformers` (`paraphrase-multilingual-MiniLM-L12-v2`) indexing English and Hinglish (Roman Hindi) document text. Ask questions in English: Roman-script Hindi questions did not retrieve reliably in testing (see Known Limitations).
+- **Semantic Retrieval**: Vector search over document chunks using Gemini embeddings (768 dimensions), with an optional local `sentence-transformers` provider. Ask questions in English: Roman-script Hindi questions did not retrieve reliably in testing (see Known Limitations).
 - **Grounded Citations**: Responses from Google Gemini cite exact chunks inline as `[1]`, `[2]`. Only cited sources are returned to the client.
 - **Configurable Scope**: Direct questions across all documents, within a specific folder, or restricted to selected documents.
 - **Model Fallback**: Automatic retry and failover to a fallback LLM model upon upstream unavailability or rate limits.
@@ -23,7 +23,7 @@ KnowFlow AI is a full-stack, retrieval-augmented generation (RAG) knowledge mana
 - **Frontend**: React 19, Vite, Tailwind CSS, Lucide icons, ReactMarkdown.
 - **Backend**: Django 5, Django REST Framework, SimpleJWT, WhiteNoise, Gunicorn.
 - **Database**: PostgreSQL with the `pgvector` extension.
-- **Embeddings**: `sentence-transformers` (`paraphrase-multilingual-MiniLM-L12-v2`, 384 dimensions).
+- **Embeddings**: Gemini `gemini-embedding-001` (768 dimensions) by default; optional local `sentence-transformers` provider (`EMBEDDING_PROVIDER=local`).
 - **LLM**: Google Gemini API via official `google-genai` SDK (default `gemini-2.5-flash`, with an optional fallback model).
 
 ---
@@ -45,7 +45,7 @@ KnowFlow AI is a full-stack, retrieval-augmented generation (RAG) knowledge mana
 
 ```
 [Document Upload] ──> [Text Extraction] ──> [Text Chunking] ──> [Vector Embedding] ──> [PostgreSQL pgvector]
-(PDF / DOCX / TXT)    (pypdf / python-docx)  (1200 chars / 200 overlap)  (MiniLM-L12-v2 384d)
+(PDF / DOCX / TXT)    (pypdf / python-docx)  (1200 chars / 200 overlap)  (Gemini embedding 768d)
                                                                                                     │
 [User Query] ───────> [Embed Query] ──> [Vector Search] ──> [Distance Cutoff (0.8)] ───────────────┘
                                                                 │
@@ -71,7 +71,7 @@ KnowFlow AI is a full-stack, retrieval-augmented generation (RAG) knowledge mana
    - Files are validated (allowed extensions `.pdf`, `.docx`, `.txt`; max size 10 MB).
    - Text is extracted using `pypdf`, `python-docx`, or UTF-8 decoding.
    - Text is split into chunks of `1200` characters with `200` character overlap, snapping cleanly to sentence, line, or whitespace boundaries to avoid cutting words in half.
-   - Chunks are vectorized using `paraphrase-multilingual-MiniLM-L12-v2` (384 dimensions, normalized) in batches of 32 and saved to PostgreSQL.
+   - Chunks are vectorized with `gemini-embedding-001` (768 dimensions, normalized, task type `RETRIEVAL_DOCUMENT`) in batches of 50, with retries on rate limits, and saved to PostgreSQL. Questions use task type `RETRIEVAL_QUERY`.
 2. **Query & Retrieval**:
    - When a user asks a question, the query string is embedded with the same model.
    - PostgreSQL retrieves matching chunks ordered by `CosineDistance`.
@@ -193,7 +193,9 @@ Developed and tested with:
 | `LLM_API_KEY` | Google Gemini API key from Google AI Studio | *(Required for chat)* |
 | `LLM_MODEL` | Primary Gemini model name | `gemini-2.5-flash` |
 | `LLM_FALLBACK_MODEL` | Optional fallback Gemini model on 503/429 | *(empty)* |
-| `EMBEDDING_MODEL` | SentenceTransformer embedding model | `paraphrase-multilingual-MiniLM-L12-v2` |
+| `EMBEDDING_PROVIDER` | `gemini` (API) or `local` (sentence-transformers, install `requirements-local.txt`) | `gemini` |
+| `EMBEDDING_MODEL` | Embedding model name (must produce or support 768 dimensions) | `gemini-embedding-001` / `paraphrase-multilingual-mpnet-base-v2` |
+| `EMBEDDING_API_KEY` | Optional separate key for embeddings | *(falls back to `LLM_API_KEY`)* |
 | `RAG_TOP_K` | Number of chunks retrieved per question | `8` |
 | `RAG_MAX_DISTANCE` | Maximum cosine distance threshold | `0.8` |
 | `THROTTLE_ASK` | Rate limit for `POST /api/chat/ask/` (per user) | `20/min` |
@@ -300,9 +302,9 @@ Starts Postgres with pgvector, the Django API (gunicorn) and the built frontend 
 - **Vector Indexing**: No approximate vector index (HNSW/IVFFlat) is created; searches are exact scans, which is fine for small collections and should be revisited for large ones.
 - **Short Keyword Retrieval**: Short keyword-style questions (for example "4 V's of big data") can miss the right chunk, because retrieval is vector-only. Adding keyword (full-text) search alongside the vectors would address this.
 - **Synchronous Ingestion**: Documents are extracted, chunked, and embedded synchronously during the upload HTTP request. Very large files or batch uploads may experience longer request response times.
-- **Model Download Size & Resource Usage**: The first time the application runs, it automatically downloads `paraphrase-multilingual-MiniLM-L12-v2` (~480 MB) into the local HuggingFace cache. PyTorch and the transformer model require substantial RAM and disk, and have not been tested on minimal free hosting tiers (e.g. 512MB RAM instances).
+- **Embedding API Limits**: Embeddings come from the Gemini API, so uploads are subject to its rate limits (the code retries with backoff and then marks the document failed so it can be reprocessed). The local provider avoids this but needs about 2 GB of RAM and a model download.
 - **Local Storage**: Uploaded files are stored on the local file system under `backend/media/` rather than cloud object storage (e.g., S3).
 - **No OCR**: Only digital text from PDFs, DOCX, and text files is parsed. Scanned images or scanned PDFs without embedded text layers are not OCR-processed.
 - **No Streaming Responses**: Answers from the Gemini LLM are returned as single completed JSON payloads; streaming server-sent events (SSE) are not currently implemented.
-- **Distance Cutoff & Top-K Tuning**: The default cutoff threshold `RAG_MAX_DISTANCE = 0.8` was tuned against a test dataset of mixed English and Hinglish domain documents. Depending on document vocabulary and domain specificity, this value may require adjustment. Roman-script Hindi (Hinglish) questions asked against English documents often fell outside the cutoff and returned no answer; English questions are recommended. RAG_TOP_K is 8 because with 5 some relevant chunks (for example the cloud service models section of the test PDF) fell just outside the results. The top-k of 8 and the distance cutoff of 0.8 were tuned on a small set of test documents.
+- **Distance Cutoff & Top-K Tuning**: The default cutoff `RAG_MAX_DISTANCE = 0.8` came from the earlier local model; distances differ between embedding models, so after changing models run `python manage.py rag_probe "your question"` to see real distances and adjust it. Depending on document vocabulary and domain specificity, this value may require adjustment. Roman-script Hindi (Hinglish) questions asked against English documents often fell outside the cutoff and returned no answer; English questions are recommended. RAG_TOP_K is 8 because with 5 some relevant chunks (for example the cloud service models section of the test PDF) fell just outside the results. The top-k of 8 and the distance cutoff of 0.8 were tuned on a small set of test documents.
 - **Upstream Gemini Availability**: Answer generation depends on Google Gemini API availability; temporary spikes in Google's cloud service can return 503 or 429 rate limit errors (mitigated by automated exponential backoff and the optional fallback model).
