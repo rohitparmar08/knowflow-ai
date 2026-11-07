@@ -59,7 +59,7 @@ Hosted on free tiers: React on Vercel, Django API on Render and PostgreSQL with 
                                                                 │
                                       ┌─────────────────────────┴─────────────────────────┐
                                       ▼                                                   ▼
-                         Any Chunks <= 0.8 Cutoff?                            All Chunks > 0.8 Cutoff
+                         Any Chunks <= 0.45 Cutoff?                            All Chunks > 0.45 Cutoff
                                       │                                                   │
                                      YES                                                  NO
                                       │                                                   │
