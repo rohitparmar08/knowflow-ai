@@ -93,7 +93,7 @@ export default function AskBox({
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask a question about your documents... (Press Enter to send, Shift+Enter for new line)"
+          placeholder="Ask a question about your documents in English... (Press Enter to send, Shift+Enter for new line)"
           disabled={isThinking}
           className="w-full resize-none px-3 py-2 text-sm text-slate-800 placeholder-slate-400 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-hidden disabled:bg-slate-50 transition-all leading-relaxed"
         />
