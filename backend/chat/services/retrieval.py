@@ -20,7 +20,7 @@ def retrieve_chunks(
     """
     if top_k is None:
         top_k = getattr(settings, "RAG_TOP_K", 8)
-    max_distance = float(getattr(settings, "RAG_MAX_DISTANCE", 0.8))
+    max_distance = float(getattr(settings, "RAG_MAX_DISTANCE", 0.45))
 
     query_embedding = embed_query(query)
 

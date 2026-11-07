@@ -47,7 +47,7 @@ KnowFlow AI is a full-stack, retrieval-augmented generation (RAG) knowledge mana
 [Document Upload] ──> [Text Extraction] ──> [Text Chunking] ──> [Vector Embedding] ──> [PostgreSQL pgvector]
 (PDF / DOCX / TXT)    (pypdf / python-docx)  (1200 chars / 200 overlap)  (Gemini embedding 768d)
                                                                                                     │
-[User Query] ───────> [Embed Query] ──> [Vector Search] ──> [Distance Cutoff (0.8)] ───────────────┘
+[User Query] ───────> [Embed Query] ──> [Vector Search] ──> [Distance Cutoff (0.45)] ───────────────┘
                                                                 │
                                       ┌─────────────────────────┴─────────────────────────┐
                                       ▼                                                   ▼
@@ -75,7 +75,7 @@ KnowFlow AI is a full-stack, retrieval-augmented generation (RAG) knowledge mana
 2. **Query & Retrieval**:
    - When a user asks a question, the query string is embedded with the same model.
    - PostgreSQL retrieves matching chunks ordered by `CosineDistance`.
-   - Chunks with cosine distance greater than `RAG_MAX_DISTANCE` (default `0.8`) are discarded.
+   - Chunks with cosine distance greater than `RAG_MAX_DISTANCE` (default `0.45`) are discarded.
 3. **Grounded Generation**:
    - If no chunks pass the cutoff, the backend skips calling the LLM entirely and immediately returns: *"I couldn't find anything relevant in your documents."*
    - If relevant chunks exist, they are formatted as numbered blocks `[1]`, `[2]` and sent to Gemini along with recent conversation history.
@@ -197,7 +197,7 @@ Developed and tested with:
 | `EMBEDDING_MODEL` | Embedding model name (must produce or support 768 dimensions) | `gemini-embedding-001` / `paraphrase-multilingual-mpnet-base-v2` |
 | `EMBEDDING_API_KEY` | Optional separate key for embeddings | *(falls back to `LLM_API_KEY`)* |
 | `RAG_TOP_K` | Number of chunks retrieved per question | `8` |
-| `RAG_MAX_DISTANCE` | Maximum cosine distance threshold | `0.8` |
+| `RAG_MAX_DISTANCE` | Maximum cosine distance threshold | `0.45` |
 | `THROTTLE_ASK` | Rate limit for `POST /api/chat/ask/` (per user) | `20/min` |
 | `THROTTLE_AUTH` | Rate limit for register/login (per IP) | `10/min` |
 | `TRUST_PROXY_SSL_HEADER` | Set `True` behind a TLS-terminating proxy (Render, Fly.io, nginx...) | `False` |
@@ -306,5 +306,5 @@ Starts Postgres with pgvector, the Django API (gunicorn) and the built frontend 
 - **Local Storage**: Uploaded files are stored on the local file system under `backend/media/` rather than cloud object storage (e.g., S3).
 - **No OCR**: Only digital text from PDFs, DOCX, and text files is parsed. Scanned images or scanned PDFs without embedded text layers are not OCR-processed.
 - **No Streaming Responses**: Answers from the Gemini LLM are returned as single completed JSON payloads; streaming server-sent events (SSE) are not currently implemented.
-- **Distance Cutoff & Top-K Tuning**: The default cutoff `RAG_MAX_DISTANCE = 0.8` came from the earlier local model; distances differ between embedding models, so after changing models run `python manage.py rag_probe "your question"` to see real distances and adjust it. Depending on document vocabulary and domain specificity, this value may require adjustment. Roman-script Hindi (Hinglish) questions asked against English documents often fell outside the cutoff and returned no answer; English questions are recommended. RAG_TOP_K is 8 because with 5 some relevant chunks (for example the cloud service models section of the test PDF) fell just outside the results. The top-k of 8 and the distance cutoff of 0.8 were tuned on a small set of test documents.
+- **Distance Cutoff & Top-K Tuning**: The default cutoff `RAG_MAX_DISTANCE = 0.45` was chosen with `python manage.py rag_probe` on a small set of test documents with Gemini embeddings: questions the documents answer had their best chunks at cosine distance 0.29 to 0.35, while an unrelated question's closest chunk was at 0.48. Distances depend on the embedding model and the documents, so re-check it after changing either. Roman-script Hindi (Hinglish) questions asked against English documents often fell outside the cutoff and returned no answer; English questions are recommended. `RAG_TOP_K` is 8 because with 5 some relevant chunks fell just outside the results.
 - **Upstream Gemini Availability**: Answer generation depends on Google Gemini API availability; temporary spikes in Google's cloud service can return 503 or 429 rate limit errors (mitigated by automated exponential backoff and the optional fallback model).

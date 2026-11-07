@@ -59,7 +59,7 @@ Free tier behaviour: the Render service sleeps after about 15 minutes without tr
 | `DATABASE_URL` | `postgres://user:pass@host/db` | Or use the `DB_*` variables |
 | `LLM_API_KEY` / `LLM_MODEL` | Gemini key / model name | Check the model name exists for your key in Google AI Studio |
 | `EMBEDDING_PROVIDER` | `gemini` (default) or `local` | Gemini embeddings use `LLM_API_KEY` unless `EMBEDDING_API_KEY` is set |
-| `RAG_MAX_DISTANCE` | `0.8` | Relevance cut-off. Check it with `python manage.py rag_probe` after changing the embedding model |
+| `RAG_MAX_DISTANCE` | `0.45` | Relevance cut-off. Check it with `python manage.py rag_probe` after changing the embedding model |
 | `TRUST_PROXY_SSL_HEADER` | `True` | When the host terminates TLS for you |
 | `SECURE_SSL_REDIRECT` | `True` | Optional, after HTTPS works |
 | `MEDIA_ROOT` | `/data/media` | Point at a persistent disk |

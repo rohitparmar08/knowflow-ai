@@ -233,7 +233,7 @@ EMBEDDING_MODEL = os.getenv(
 )
 EMBEDDING_API_KEY = os.getenv("EMBEDDING_API_KEY", "")  # falls back to LLM_API_KEY when empty
 RAG_TOP_K = int(os.getenv("RAG_TOP_K", "8"))
-RAG_MAX_DISTANCE = float(os.getenv("RAG_MAX_DISTANCE", "0.8"))
+RAG_MAX_DISTANCE = float(os.getenv("RAG_MAX_DISTANCE", "0.45"))
 
 # Production Security Defaults
 if not DEBUG:
